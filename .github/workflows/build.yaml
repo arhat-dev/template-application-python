@@ -1,0 +1,155 @@
+name: Build
+
+# yamllint disable-line rule:truthy
+on:
+  check_run:
+    types:
+    - rerequested
+    - requested_action
+  pull_request:
+    branches:
+    - master
+  push:
+    branches:
+    - master
+    tags:
+    - v*
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: kolpav/purge-artifacts-action@v1
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        expire-in: 30m
+
+    - name: Dist
+      run: |
+        make dist
+
+    - name: Hash
+      run: |
+        cd dist
+        sha256sum *.whl > sha256.txt
+        sha512sum *.whl > sha512.txt
+        md5sum *.whl > md5.txt
+        cd -
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: dist
+        path: dist
+
+  release:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
+    needs:
+    - build
+    steps:
+    - name: Download Dist
+      uses: actions/download-artifact@v2
+      with:
+        name: dist
+        path: dist
+
+    - name: Extract tag name
+      id: extract_tag
+      run: |
+        echo "::set-output name=tag::$(echo ${GITHUB_REF#refs/tags/})"
+
+    - name: Extract version name
+      id: extract_version
+      env:
+        GIT_TAG: ${{ steps.extract_tag.outputs.tag }}
+      run: |
+        echo "::set-output name=ver::$(echo ${GIT_TAG#v})"
+
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: ${{ github.ref }}
+        draft: true
+        prerelease: false
+        body: |
+          # Release Notes
+
+          ## Features
+
+          - Add foo support #issue-ref
+          - Add bar support #issue-ref
+
+          ## Bug fixes
+
+          - Fixed foo #issue-ref
+          - Fixed bar #issue-ref #pr-ref
+
+          ## Breaking Changes
+
+          - Foo ...
+          - Bar ...
+
+          ## Images
+
+          - `docker.io/arhatdev/template-application-python:${{ steps.extract_tag.outputs.tag }}`
+          - `ghcr.io/arhat-dev/template-application-python:${{ steps.extract_tag.outputs.tag }}`
+
+
+    - name: Upload sha256
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_name: sha256.txt
+        asset_path: dist/sha256.txt
+        asset_content_type: text/plain
+
+    - name: Upload sha512
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_name: sha512.txt
+        asset_path: dist/sha512.txt
+        asset_content_type: text/plain
+
+    - name: Upload md5
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_name: md5.txt
+        asset_path: dist/md5.txt
+        asset_content_type: text/plain
+
+    - name: Upload template_application_python-${{ steps.extract_version.outputs.ver }}-py2.py3-none-any.whl
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_name: template_application_python-${{ steps.extract_version.outputs.ver }}-py2.py3-none-any.whl
+        asset_path: dist/template_application_python-${{ steps.extract_version.outputs.ver }}-py2.py3-none-any.whl
+        asset_content_type: application/octet-stream
+
+    - name: Upload to pypi registry
+      uses: pypa/gh-action-pypi-publish@v1.4.1
+      with:
+        user: __token__
+        password: ${{ secrets.PYPI_PASSWORD }}
+        skip_existing: true
+        packages_dir: dist
+        # repository_url: https://test.pypi.org/legacy/
