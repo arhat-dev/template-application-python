@@ -20,6 +20,10 @@ export IMAGE_REPOS
 
 DEFAULT_IMAGE_MANIFEST_TAG ?= latest
 
+.PHONY: prepare
+prepare:
+	pipenv install --dev --deploy
+
 .PHONY: run
 run:
 	pipenv run python src

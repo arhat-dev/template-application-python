@@ -33,6 +33,7 @@ jobs:
 
     - name: Lint
       run: |
+        make prepare
         make lint.all
 
   unit-tests:
@@ -59,7 +60,7 @@ jobs:
 
     - name: Test
       run: |
-        pipenv install --dev --deploy
+        make prepare
         make test
 
     - name: Report Test Coverage
