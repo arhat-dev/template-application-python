@@ -1,15 +1,12 @@
 docs:
-- any:
-  - docs/**
-  - README.md
+- docs/**
+- README.md
 
 ci:
-- any:
-  - .github/**
-  - cicd/gitlab/**
-  - .gitlab-ci.yml
+- .github/**
+- cicd/gitlab/**
+- .gitlab-ci.yml
 
 dependency:
-- any:
-  - Pipfile
-  - Pipfile.lock
+- Pipfile
+- Pipfile.lock

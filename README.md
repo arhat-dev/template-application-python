@@ -1,4 +1,4 @@
-# Template Application Go
+# Template Application Python
 
 [![CI](https://github.com/arhat-dev/template-application-python/workflows/CI/badge.svg)](https://github.com/arhat-dev/template-application-python/actions?query=workflow%3ACI)
 [![Build](https://github.com/arhat-dev/template-application-python/workflows/Build/badge.svg)](https://github.com/arhat-dev/template-application-python/actions?query=workflow%3ABuild)
