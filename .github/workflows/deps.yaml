@@ -7,7 +7,7 @@ on:
     - deps/**
 
 jobs:
-  vendor:
+  lock:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -16,6 +16,11 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: "3.8"
+
+    - name: Install pipenv
+      uses: dschep/install-pipenv-action@v1
+      with:
+        version: "2020.8.13" # yamllint disable-line rule:quoted-strings
 
     - name: Configure git user
       run: |
@@ -26,11 +31,11 @@ jobs:
       run: |
         make lock
 
-    - name: Push vendored packages
+    - name: Push lockfile
       run: |
         git add --all .
-        if git commit -m 'deps(vendor): Update vendored packages'; then
+        if git commit -m 'deps(lock): Update packages lock'; then
           git push
         else
-          echo "no vendored package changed, skipping push"
+          echo "no package checksum changed, skipping push"
         fi
